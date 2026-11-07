@@ -361,7 +361,9 @@ function correrMaquina(cadena) {
 
 function validar() {
   pararAutomatico();
-  var cadena = document.getElementById("txtCadena").value.trim();
+  // se quitan todos los espacios (al inicio, al final y en medio)
+  var cadena = document.getElementById("txtCadena").value.replace(/\s+/g, "");
+  document.getElementById("txtCadena").value = cadena;
   var res = correrMaquina(cadena);
   pasos = res.pasos;
   pasoActual = 0;
