@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<!--
+  PIA - Equipo 3
+  Analizador del lenguaje L = { a^n (bab)^n | n > 0 } con maquina de Turing
+  Integrantes:
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIA Equipo 3 - Maquina de Turing</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .encabezado h1 { margin: 0; }
+  .contenedor { display: flex; gap: 20px; padding: 24px; align-items: flex-start; max-width: 1400px; margin: 0 auto; }
+  .izquierda { flex: 1; min-width: 0; }
+  .derecha { width: 300px; position: sticky; top: 20px; }
+  .caja h2 { margin-top: 0; }
+  #txtCadena { width: 55%; outline: none; }
+  #txtN { width: 70px; outline: none; }
+  button { cursor: pointer; margin: 3px 0; }
+  button:disabled { cursor: default; opacity: .4; }
+  #resultado { display: none; text-align: center; }
+  #cinta { overflow-x: auto; white-space: nowrap; }
+  .celda { display: inline-block; position: relative; text-align: center; }
+  .etiqueta-estado { position: absolute; left: 0; width: 100%; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; }
+  #tablaPasos { max-height: 420px; overflow-y: auto; }
+  .dos-columnas { display: flex; gap: 20px; }
+  .dos-columnas .caja { flex: 1; min-width: 0; }
+  #historial td { word-break: break-all; }
+  .pie { text-align: center; padding-bottom: 20px; }
+  @media (max-width: 900px) {
+    .contenedor, .dos-columnas { flex-direction: column; }
+    .derecha { width: 100%; position: static; }
+    #txtCadena { width: 100%; }
+  }
+  .encabezado { position: relative; }
+  #btnModo { position: absolute; top: 14px; right: 16px; font-size: 13px; padding: 6px 12px; }
+  @media (max-width: 600px) { #btnModo { position: static; margin-top: 12px; } }
+
+  /* colores: crema y terracota */
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f5efe6; color: #3b2f2a; }
+  .encabezado { padding: 34px 24px 20px; text-align: center; border-bottom: 1px solid #d9cbb8; }
+  .encabezado h1 { font-size: 28px; font-weight: 600; }
+  .encabezado p { margin: 10px 0 0; font-size: 19px; color: #b5562f; }
+  .caja { background: #fffdf9; border: 1px solid #e4d8c8; border-radius: 4px; padding: 22px; margin-bottom: 20px; }
+  .caja h2 { font-size: 18px; font-weight: 600; color: #b5562f; }
+  #txtCadena, #txtN { font: 19px Menlo, Consolas, "Courier New", monospace; padding: 10px 12px; background: #fbf7f1; border: 1px solid #d9cbb8; border-radius: 3px; color: #3b2f2a; }
+  #txtCadena:focus, #txtN:focus { border-color: #b5562f; }
+  button { font-family: inherit; background: transparent; color: #3b2f2a; border: 1px solid #b9a78f; padding: 9px 16px; font-size: 15px; border-radius: 3px; }
+  button:hover { background: #f1e7da; }
+  .btn-verde { background: #b5562f; border-color: #b5562f; color: white; }
+  .btn-verde:hover { background: #9a4524; }
+  .nota { font-size: 14px; color: #8c7b6d; }
+  #resultado { margin-top: 18px; padding: 14px; font-size: 24px; font-weight: 700; border-radius: 3px; }
+  .valida { background: #e7efdf; color: #3f6b2a; border: 1px solid #b9cfa6; }
+  .invalida { background: #f6e1db; color: #9a2f1e; border: 1px solid #e2b3a6; }
+  #motivo { font-size: 15px; font-weight: normal; color: #6e5e52; }
+  #cinta { padding: 30px 4px 8px; color: #8c7b6d; }
+  .celda { width: 40px; height: 46px; line-height: 46px; margin-right: 3px; border: 1px solid #b9a78f; font: bold 20px Menlo, Consolas, "Courier New", monospace; background: #fffdf9; color: #3b2f2a; }
+  .cabezal { background: #b5562f; border-color: #b5562f; color: white; }
+  .etiqueta-estado { top: -24px; font: bold 13px/18px Menlo, Consolas, "Courier New", monospace; color: #b5562f; }
+  #infoPaso { color: #6e5e52; }
+  table { font-size: 15px; }
+  th { font-weight: 600; color: #8c7b6d; padding: 8px; border-bottom: 2px solid #3b2f2a; }
+  td { padding: 7px 8px; border-bottom: 1px solid #ece2d4; }
+  .codigo { font-family: Menlo, Consolas, "Courier New", monospace; }
+  .marcada { background: #f6e6d6; }
+  #tablaPasos { color: #8c7b6d; }
+  #tablaPasos table { color: #3b2f2a; }
+  #tablaPasos u { text-decoration-color: #b5562f; text-decoration-thickness: 2px; color: #b5562f; font-weight: bold; }
+  .verde { color: #3f6b2a; }
+  .rojo { color: #9a2f1e; }
+  .pie { color: #a8978a; }
+  /* modo oscuro: cafe oscuro */
+  body.oscuro { background: #1e1916; color: #ece0d1; }
+  body.oscuro .encabezado { border-color: #3f342d; }
+  body.oscuro .encabezado p, body.oscuro .caja h2, body.oscuro .etiqueta-estado, body.oscuro #tablaPasos u { color: #e8875c; }
+  body.oscuro .caja { background: #28211d; border-color: #3f342d; }
+  body.oscuro #txtCadena, body.oscuro #txtN { background: #1e1916; color: #ece0d1; border-color: #54463c; }
+  body.oscuro button { color: #ece0d1; border-color: #6b5a4d; }
+  body.oscuro button:hover { background: #332a25; }
+  body.oscuro .btn-verde { background: #c9643a; border-color: #c9643a; color: white; }
+  body.oscuro .nota, body.oscuro #cinta, body.oscuro #tablaPasos, body.oscuro th, body.oscuro .pie { color: #a8978a; }
+  body.oscuro #motivo, body.oscuro #infoPaso { color: #c4b4a4; }
+  body.oscuro .valida { background: #233021; color: #a9d48e; border-color: #3f5a33; }
+  body.oscuro .invalida { background: #3a211b; color: #f0a08b; border-color: #6e3527; }
+  body.oscuro .celda { background: #1e1916; color: #ece0d1; border-color: #6b5a4d; }
+  body.oscuro .cabezal { background: #c9643a; border-color: #c9643a; color: white; }
+  body.oscuro th { border-color: #ece0d1; }
+  body.oscuro td { border-color: #3a302a; }
+  body.oscuro #tablaPasos table { color: #ece0d1; }
+  body.oscuro .marcada { background: #3d2c22; }
+  body.oscuro .verde { color: #a9d48e; }
+  body.oscuro .rojo { color: #f0a08b; }
+
+  /* acomodo */
+  .encabezado { padding: 20px 24px 16px; }
+  .encabezado h1 { font-size: 26px; }
+  .encabezado p { margin-top: 6px; }
+  .contenedor { padding: 20px 24px; }
+  .derecha { width: 380px; }
+  .caja { margin-bottom: 18px; }
+  .caja h2 { margin-bottom: 14px; }
+  .fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+  .fila button { margin: 0; }
+  .fila #txtCadena { flex: 1; width: auto; min-width: 220px; }
+  #txtCadena::placeholder { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 15px; letter-spacing: 0; }
+  .fila-n { margin-top: 12px; }
+  .etiqueta-n { display: flex; align-items: center; font-weight: 600; }
+  .fila-n .nota { display: flex; align-items: center; }
+  .fila-n #txtN { padding: 7px 10px; font-size: 16px; }
+  .fila-n button { padding: 8px 14px; }
+  .fila-n .nota { margin-left: 8px; }
+  #cinta { min-height: 92px; }
+  .fila-cinta { justify-content: space-between; align-items: center; margin-top: 12px; }
+  .botones-paso { display: flex; flex-wrap: wrap; gap: 6px; }
+  .botones-paso button { padding: 7px 12px; font-size: 14px; }
+  .derecha td, .derecha th { padding: 6px; }
+  .derecha .codigo { font-size: 13px; white-space: nowrap; }
+  #historialVacio { margin-bottom: 0; }
+  @media (max-width: 1000px) {
+    .contenedor { flex-direction: column; align-items: stretch; }
+    .izquierda { flex: none; }
+    .derecha { width: 100%; position: static; }
+  }
+
+  /* diagrama de transicion */
+  #explicacion { margin-top: 0; }
+  #diagramaV1 svg { width: 100%; max-width: 760px; height: auto; display: block; margin: 0 auto; }
+  .nodo circle { fill: #fffdf9; stroke: #3b2f2a; stroke-width: 2; }
+  .nodo text { fill: #3b2f2a; font: bold 15px Menlo, Consolas, monospace; }
+  .nodo.activo circle { fill: #b5562f; stroke: #b5562f; }
+  .nodo.activo text { fill: white; }
+  .arista { stroke: #8c7b6d; stroke-width: 1.6; fill: none; }
+  .arista.activa { stroke: #b5562f; stroke-width: 3; }
+  .etq { fill: #6e5e52; font: 13px Menlo, Consolas, monospace; }
+  .etq.activa { fill: #b5562f; font-weight: bold; }
+  #flecha path { fill: #8c7b6d; }
+  #flecha2 path { fill: #b5562f; }
+  body.oscuro .nodo circle { fill: #28211d; stroke: #ece0d1; }
+  body.oscuro .nodo text { fill: #ece0d1; }
+  body.oscuro .nodo.activo circle { fill: #c9643a; stroke: #c9643a; }
+  body.oscuro .nodo.activo text { fill: white; }
+  body.oscuro .arista { stroke: #a8978a; }
+  body.oscuro .arista.activa { stroke: #e8875c; }
+  body.oscuro .etq { fill: #c4b4a4; }
+  body.oscuro .etq.activa { fill: #e8875c; }
+  body.oscuro #flecha path { fill: #a8978a; }
+  body.oscuro #flecha2 path { fill: #e8875c; }
+
+  /* celulares */
+  @media (max-width: 600px) {
+    .encabezado { padding: 46px 14px 14px; }
+    .encabezado h1 { font-size: 20px; line-height: 1.25; }
+    .encabezado p { font-size: 16px; }
+    #btnModo { position: absolute; top: 10px; right: 12px; margin: 0; font-size: 12px; padding: 5px 10px; }
+    .contenedor { padding: 12px; gap: 0; }
+    .caja { padding: 14px; margin-bottom: 12px; }
+    .caja h2 { font-size: 16px; margin-bottom: 10px; }
+
+    .fila #txtCadena { flex: 1 1 100%; min-width: 0; font-size: 17px; }
+    .fila .btn-verde, .fila .btn-gris { flex: 1; padding: 11px; }
+    .fila-n { gap: 6px; }
+    .fila-n #txtN { flex: 0 0 72px; width: 72px; }
+    .fila-n button { flex: 1; }
+    .fila-n .nota { flex: 1 1 100%; margin: 4px 0 0; font-size: 13px; }
+
+    #resultado { font-size: 19px; padding: 12px; }
+    #motivo { font-size: 13px; }
+
+    #cinta { min-height: 80px; padding-top: 28px; }
+    .celda { width: 32px; height: 40px; line-height: 40px; font-size: 17px; margin-right: 2px; }
+    .etiqueta-estado { font-size: 11px; top: -22px; }
+    #infoPaso { flex: 1 1 100%; font-size: 13px; }
+    .botones-paso { width: 100%; gap: 4px; }
+    .botones-paso button { flex: 1 1 auto; padding: 8px 4px; font-size: 12px; }
+
+    table { font-size: 13px; }
+    th, td { padding: 5px 4px; }
+    #tablaPasos { max-height: 340px; }
+    #tablaPasos td { white-space: nowrap; }
+    #tablaPasos td.codigo { white-space: normal; word-break: break-all; }
+    .derecha .codigo { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="encabezado">
+  <button id="btnModo" onclick="cambiarModo()">Modo oscuro</button>
+  <h1>Analizador de Lenguaje con Máquina de Turing</h1>
+  <p><span class="lenguaje">L = { a<sup>n</sup> (bab)<sup>n</sup> | n &gt; 0 }</span></p>
+</div>
+
+<div class="contenedor">
+
+  <div class="izquierda">
+
+    <div class="caja">
+      <h2>Ingresar cadena</h2>
+      <div class="fila">
+        <input type="text" id="txtCadena" placeholder="Escribe la cadena, por ejemplo aababbab">
+        <button class="btn-verde" onclick="validar()">Validar</button>
+        <button class="btn-gris" onclick="limpiar()">Limpiar</button>
+      </div>
+      <div class="fila fila-n">
+        <label for="txtN" class="etiqueta-n">n =</label>
+        <input type="number" id="txtN" value="3" min="1">
+        <button onclick="generar()">Generar cadena válida</button>
+        <span class="nota">Solo se aceptan a y b. Puedes presionar Enter para validar.</span>
+      </div>
+      <div id="resultado"></div>
+    </div>
+
+    <div class="caja">
+      <h2>Cinta</h2>
+      <div id="cinta">Todavía no se ha evaluado ninguna cadena.</div>
+      <div class="fila fila-cinta">
+        <span id="infoPaso"></span>
+        <div class="botones-paso">
+          <button id="btnInicio" onclick="irInicio()" disabled>Inicio</button>
+          <button id="btnAnterior" onclick="anterior()" disabled>Anterior</button>
+          <button id="btnAuto" onclick="automatico()" disabled>Automático</button>
+          <button id="btnSiguiente" onclick="siguiente()" disabled>Siguiente</button>
+          <button id="btnFinal" onclick="irFinal()" disabled>Final</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="caja">
+      <h2>Diagrama de transición</h2>
+      <p class="nota" id="explicacion">Cada flecha dice lo que hace la regla: símbolo que lee / símbolo que escribe, movimiento.</p>
+      <div id="diagramaV1"></div>
+    </div>
+
+    <div class="caja">
+      <h2>Configuraciones</h2>
+      <div id="tablaPasos">Aquí se muestran los pasos cuando valides una cadena.</div>
+    </div>
+
+  </div>
+
+  <div class="derecha">
+    <div class="caja">
+      <h2>Reglas de transición</h2>
+      <table>
+        <thead><tr><th>No.</th><th>Regla</th></tr></thead>
+        <tbody id="tablaReglas"></tbody>
+      </table>
+      <p class="nota">σ = {a, b} &nbsp;&nbsp; ƀ = blanco &nbsp;&nbsp; q8 = estado final</p>
+    </div>
+    <div class="caja">
+      <h2>Historial</h2>
+      <table>
+        <thead><tr><th>Cadena</th><th>Resultado</th></tr></thead>
+        <tbody id="historial"></tbody>
+      </table>
+      <p class="nota" id="historialVacio">Aún no has probado ninguna cadena.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="pie">PIA - Equipo 3</div>
+
+<script>
+var BLANCO = "ƀ";
+
+// reglas de transicion (estado, lee, nuevo estado, escribe, movimiento)
+// σ significa a o b, y se deja el mismo simbolo
+// la regla 10 va con R, con L la maquina se atoraba cuando n >= 2
+var reglas = [
+  { num: 1,  estado: "q0", lee: BLANCO, nuevo: "q1", escribe: BLANCO, mov: "R" },
+  { num: 2,  estado: "q1", lee: "a",    nuevo: "q2", escribe: BLANCO, mov: "R" },
+  { num: 3,  estado: "q2", lee: "σ",    nuevo: "q2", escribe: "σ",    mov: "R" },
+  { num: 4,  estado: "q2", lee: BLANCO, nuevo: "q3", escribe: BLANCO, mov: "L" },
+  { num: 5,  estado: "q3", lee: "b",    nuevo: "q4", escribe: BLANCO, mov: "L" },
+  { num: 6,  estado: "q4", lee: "a",    nuevo: "q5", escribe: BLANCO, mov: "L" },
+  { num: 7,  estado: "q5", lee: "b",    nuevo: "q6", escribe: BLANCO, mov: "L" },
+  { num: 8,  estado: "q6", lee: "σ",    nuevo: "q6", escribe: "σ",    mov: "L" },
+  { num: 9,  estado: "q6", lee: BLANCO, nuevo: "q7", escribe: BLANCO, mov: "R" },
+  { num: 10, estado: "q7", lee: "a",    nuevo: "q2", escribe: BLANCO, mov: "R" },
+  { num: 11, estado: "q7", lee: BLANCO, nuevo: "q8", escribe: BLANCO, mov: "S" }
+];
+
+
+var pasos = [];      // aqui se guardan todas las configuraciones
+var pasoActual = 0;
+var intervalo = null;
+
+// busca la regla que se puede aplicar, si no hay regresa null
+function buscarRegla(estado, simbolo) {
+  for (var i = 0; i < reglas.length; i++) {
+    var r = reglas[i];
+    if (r.estado == estado) {
+      if (r.lee == simbolo) return r;
+      if (r.lee == "σ" && (simbolo == "a" || simbolo == "b")) return r;
+    }
+  }
+  return null;
+}
+
+// simula la maquina de Turing con la cadena
+function correrMaquina(cadena) {
+  var cinta = [BLANCO];
+  for (var i = 0; i < cadena.length; i++) {
+    cinta.push(cadena[i]);
+  }
+  cinta.push(BLANCO);
+
+  var estado = "q0";
+  var pos = 0;
+  var lista = [];
+  lista.push({ cinta: cinta.slice(), pos: pos, estado: estado, regla: "" });
+
+  // revisar que solo tenga a y b
+  for (var i = 0; i < cadena.length; i++) {
+    if (cadena[i] != "a" && cadena[i] != "b") {
+      return { valida: false, pasos: lista, motivo: "La cadena tiene símbolos que no son a o b." };
+    }
+  }
+
+  var contador = 0;
+  while (estado != "q8") {
+    var r = buscarRegla(estado, cinta[pos]);
+    if (r == null) {
+      return { valida: false, pasos: lista, motivo: "No hay regla para (" + estado + ", " + cinta[pos] + "), la máquina se detiene." };
+    }
+
+    if (r.escribe != "σ") {
+      cinta[pos] = r.escribe;
+    }
+    estado = r.nuevo;
+
+    if (r.mov == "R") pos++;
+    if (r.mov == "L") pos--;
+
+    // si se sale de la cinta se agrega un blanco
+    if (pos < 0) {
+      cinta.unshift(BLANCO);
+      pos = 0;
+    }
+    if (pos >= cinta.length) {
+      cinta.push(BLANCO);
+    }
+
+    lista.push({ cinta: cinta.slice(), pos: pos, estado: estado, regla: r.num });
+
+    contador++;
+    if (contador > 100000) {
+      return { valida: false, pasos: lista, motivo: "Demasiados pasos." };
+    }
+  }
+
+  return { valida: true, pasos: lista, motivo: "La máquina llegó al estado final q8." };
+}
+
+function validar() {
+  pararAutomatico();
+  var cadena = document.getElementById("txtCadena").value.trim();
+  var res = correrMaquina(cadena);
+  pasos = res.pasos;
+  pasoActual = 0;
+
+  var div = document.getElementById("resultado");
+  div.style.display = "block";
+  if (res.valida) {
+    div.className = "valida";
+    div.innerHTML = "✔ Cadena válida<br><span id='motivo'>" + res.motivo + "</span>";
+  } else {
+    div.className = "invalida";
+    div.innerHTML = "✘ Cadena inválida<br><span id='motivo'>" + quitarHtml(res.motivo) + "</span>";
+  }
+
+  mostrarTablaPasos(res.valida);
+  mostrarPaso();
+  agregarHistorial(cadena, res.valida);
+}
+
+// para que no se pueda meter html en la cadena
+function quitarHtml(texto) {
+  return texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// regresa la parte de la cinta que se va a mostrar (sin tantos blancos)
+function rangoCinta(p) {
+  var inicio = 0;
+  var fin = p.cinta.length - 1;
+  while (inicio < p.cinta.length && p.cinta[inicio] == BLANCO) inicio++;
+  while (fin >= 0 && p.cinta[fin] == BLANCO) fin--;
+
+  if (inicio > fin) {
+    inicio = p.pos;
+    fin = p.pos;
+  }
+  inicio = Math.max(0, Math.min(inicio - 1, p.pos));
+  fin = Math.min(p.cinta.length - 1, Math.max(fin + 1, p.pos));
+  return [inicio, fin];
+}
+
+function mostrarPaso() {
+  var p = pasos[pasoActual];
+  var rango = rangoCinta(p);
+  var html = "";
+
+  for (var i = rango[0]; i <= rango[1]; i++) {
+    if (i == p.pos) {
+      html += "<div class='celda cabezal'><span class='etiqueta-estado'>" + p.estado + "</span>" + p.cinta[i] + "</div>";
+    } else {
+      html += "<div class='celda'>" + p.cinta[i] + "</div>";
+    }
+  }
+  document.getElementById("cinta").innerHTML = html;
+
+  var info = "Paso " + pasoActual + " de " + (pasos.length - 1);
+  if (p.regla != "") {
+    info += " - Regla " + p.regla;
+  } else {
+    info += " - Configuración inicial";
+  }
+  document.getElementById("infoPaso").innerHTML = info;
+
+  // marcar la regla que se uso
+  mostrarReglas(p.regla);
+  marcarGrafica(p.estado, p.regla);
+
+  // marcar el renglon en la tabla de configuraciones
+  var filas = document.querySelectorAll("#tablaPasos tbody tr");
+  for (var i = 0; i < filas.length; i++) {
+    filas[i].className = (i == pasoActual) ? "marcada" : "";
+  }
+
+  document.getElementById("btnInicio").disabled = (pasoActual == 0);
+  document.getElementById("btnAnterior").disabled = (pasoActual == 0);
+  document.getElementById("btnSiguiente").disabled = (pasoActual == pasos.length - 1);
+  document.getElementById("btnFinal").disabled = (pasoActual == pasos.length - 1);
+  document.getElementById("btnAuto").disabled = false;
+
+  if (pasoActual == pasos.length - 1) {
+    pararAutomatico();
+  }
+}
+
+function textoConfiguracion(p) {
+  var rango = rangoCinta(p);
+  var t = "";
+  for (var i = rango[0]; i <= rango[1]; i++) {
+    if (i == p.pos) {
+      t += "<u>" + p.cinta[i] + "</u>";
+    } else {
+      t += p.cinta[i];
+    }
+  }
+  return "(" + p.estado + ", " + t + ")";
+}
+
+function mostrarTablaPasos(valida) {
+  var html = "<table><thead><tr><th>Paso</th><th>Regla</th><th>Configuración</th></tr></thead><tbody>";
+  for (var i = 0; i < pasos.length; i++) {
+    var regla = pasos[i].regla != "" ? "Regla " + pasos[i].regla + " |-" : "Inicio";
+    html += "<tr onclick='irPaso(" + i + ")' style='cursor:pointer'><td>" + i + "</td><td>" + regla +
+            "</td><td class='codigo'>" + textoConfiguracion(pasos[i]) + "</td></tr>";
+  }
+  html += "</tbody></table>";
+
+  if (valida) {
+    html += "<p class='verde'>Cadena válida</p>";
+  } else {
+    html += "<p class='rojo'>Cadena inválida</p>";
+  }
+  document.getElementById("tablaPasos").innerHTML = html;
+}
+
+function mostrarReglas(marcar) {
+  var html = "";
+  for (var i = 0; i < reglas.length; i++) {
+    var r = reglas[i];
+    var clase = (r.num == marcar) ? " class='marcada'" : "";
+    var texto = "δ(" + r.estado + ", " + r.lee + ") = (" + r.nuevo + ", " + r.escribe + ", " + r.mov + ")";
+    html += "<tr" + clase + "><td>" + r.num + "</td><td class='codigo'>" + texto + "</td></tr>";
+  }
+  document.getElementById("tablaReglas").innerHTML = html;
+}
+
+function agregarHistorial(cadena, valida) {
+  var fila = document.createElement("tr");
+  var texto = cadena == "" ? "(vacía)" : quitarHtml(cadena);
+  var resultado = valida ? "<span class='verde'>Válida</span>" : "<span class='rojo'>Inválida</span>";
+  fila.innerHTML = "<td class='codigo'>" + texto + "</td><td>" + resultado + "</td>";
+
+  document.getElementById("historialVacio").style.display = "none";
+  var tabla = document.getElementById("historial");
+  tabla.insertBefore(fila, tabla.firstChild);
+}
+
+function generar() {
+  var n = parseInt(document.getElementById("txtN").value);
+  if (isNaN(n) || n < 1) {
+    alert("n tiene que ser mayor a 0");
+    return;
+  }
+  if (n > 50) n = 50;
+
+  var cadena = "";
+  for (var i = 0; i < n; i++) cadena += "a";
+  for (var i = 0; i < n; i++) cadena += "bab";
+
+  document.getElementById("txtCadena").value = cadena;
+  validar();
+}
+
+function limpiar() {
+  pararAutomatico();
+  pasos = [];
+  document.getElementById("txtCadena").value = "";
+  document.getElementById("resultado").style.display = "none";
+  document.getElementById("cinta").innerHTML = "Todavía no se ha evaluado ninguna cadena.";
+  document.getElementById("infoPaso").innerHTML = "";
+  document.getElementById("tablaPasos").innerHTML = "Aquí se muestran los pasos cuando valides una cadena.";
+  document.getElementById("btnInicio").disabled = true;
+  document.getElementById("btnAnterior").disabled = true;
+  document.getElementById("btnAuto").disabled = true;
+  document.getElementById("btnSiguiente").disabled = true;
+  document.getElementById("btnFinal").disabled = true;
+  mostrarReglas("");
+  marcarGrafica("", "");
+}
+
+// botones para moverse en los pasos
+function irPaso(i) { pararAutomatico(); pasoActual = i; mostrarPaso(); }
+function irInicio() { irPaso(0); }
+function irFinal() { irPaso(pasos.length - 1); }
+function anterior() { if (pasoActual > 0) irPaso(pasoActual - 1); }
+function siguiente() { if (pasoActual < pasos.length - 1) irPaso(pasoActual + 1); }
+
+function automatico() {
+  if (intervalo != null) {
+    pararAutomatico();
+    return;
+  }
+  if (pasoActual == pasos.length - 1) pasoActual = 0;
+  document.getElementById("btnAuto").innerHTML = "Pausa";
+  intervalo = setInterval(function () {
+    pasoActual++;
+    mostrarPaso();
+  }, 500);
+}
+
+function pararAutomatico() {
+  clearInterval(intervalo);
+  intervalo = null;
+  document.getElementById("btnAuto").innerHTML = "Automático";
+}
+
+// ----- diagrama de transicion -----
+var posiciones = {
+  q0: [70, 95],  q1: [210, 95],  q2: [350, 95],  q3: [490, 95],  q4: [630, 95],
+  q5: [630, 285], q6: [490, 285], q7: [350, 285], q8: [210, 285]
+};
+var RADIO = 26;
+
+// cada flecha del diagrama con la regla que representa
+var aristas = [
+  { regla: 1,  de: "q0", a: "q1", texto: "ƀ/ƀ,R", x: 140, y: 83 },
+  { regla: 2,  de: "q1", a: "q2", texto: "a/ƀ,R", x: 280, y: 83 },
+  { regla: 3,  lazo: "arriba", de: "q2", texto: "a/a,R  b/b,R", x: 350, y: 18 },
+  { regla: 4,  de: "q2", a: "q3", texto: "ƀ/ƀ,L", x: 420, y: 83 },
+  { regla: 5,  de: "q3", a: "q4", texto: "b/ƀ,L", x: 560, y: 83 },
+  { regla: 6,  de: "q4", a: "q5", texto: "a/ƀ,L", x: 670, y: 195 },
+  { regla: 7,  de: "q5", a: "q6", texto: "b/ƀ,L", x: 560, y: 273 },
+  { regla: 8,  lazo: "abajo", de: "q6", texto: "a/a,L  b/b,L", x: 490, y: 372 },
+  { regla: 9,  de: "q6", a: "q7", texto: "ƀ/ƀ,R", x: 420, y: 273 },
+  { regla: 10, de: "q7", a: "q2", texto: "a/ƀ,R", x: 305, y: 195 },
+  { regla: 11, de: "q7", a: "q8", texto: "ƀ/ƀ,S", x: 280, y: 273 }
+];
+
+function dibujarDiagrama() {
+  var svg = "<svg viewBox='0 0 730 385' xmlns='http://www.w3.org/2000/svg'>";
+  svg += "<defs>";
+  svg += "<marker id='flecha' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto'><path d='M0,0 L10,5 L0,10 z'/></marker>";
+  svg += "<marker id='flecha2' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='8' markerHeight='8' orient='auto'><path d='M0,0 L10,5 L0,10 z'/></marker>";
+  svg += "</defs>";
+
+  // flecha de inicio
+  svg += "<path class='arista' d='M8,95 L42,95' marker-end='url(#flecha)'/>";
+
+  for (var i = 0; i < aristas.length; i++) {
+    var ar = aristas[i];
+    var d;
+    if (ar.lazo == "arriba") {
+      var c = posiciones[ar.de];
+      d = "M" + (c[0] - 13) + "," + (c[1] - 23) + " C" + (c[0] - 40) + "," + (c[1] - 85) + " " + (c[0] + 40) + "," + (c[1] - 85) + " " + (c[0] + 13) + "," + (c[1] - 24);
+    } else if (ar.lazo == "abajo") {
+      var c = posiciones[ar.de];
+      d = "M" + (c[0] - 13) + "," + (c[1] + 23) + " C" + (c[0] - 40) + "," + (c[1] + 85) + " " + (c[0] + 40) + "," + (c[1] + 85) + " " + (c[0] + 13) + "," + (c[1] + 24);
+    } else {
+      var p1 = posiciones[ar.de];
+      var p2 = posiciones[ar.a];
+      var dx = p2[0] - p1[0];
+      var dy = p2[1] - p1[1];
+      var largo = Math.sqrt(dx * dx + dy * dy);
+      var x1 = p1[0] + dx / largo * RADIO;
+      var y1 = p1[1] + dy / largo * RADIO;
+      var x2 = p2[0] - dx / largo * (RADIO + 1);
+      var y2 = p2[1] - dy / largo * (RADIO + 1);
+      d = "M" + x1 + "," + y1 + " L" + x2 + "," + y2;
+    }
+    svg += "<path id='arista-" + ar.regla + "' class='arista' d='" + d + "' marker-end='url(#flecha)'/>";
+    svg += "<text id='etq-" + ar.regla + "' class='etq' x='" + ar.x + "' y='" + ar.y + "' text-anchor='middle'>" + ar.texto + "</text>";
+  }
+
+  // los estados
+  for (var q in posiciones) {
+    var c = posiciones[q];
+    svg += "<g id='nodo-" + q + "' class='nodo'>";
+    svg += "<circle cx='" + c[0] + "' cy='" + c[1] + "' r='" + RADIO + "'/>";
+    if (q == "q8") {
+      svg += "<circle cx='" + c[0] + "' cy='" + c[1] + "' r='" + (RADIO - 5) + "'/>";
+    }
+    svg += "<text x='" + c[0] + "' y='" + (c[1] + 5) + "' text-anchor='middle'>" + q + "</text>";
+    svg += "</g>";
+  }
+
+  svg += "</svg>";
+  document.getElementById("diagramaV1").innerHTML = svg;
+}
+
+// marca el estado actual y la regla que se acaba de usar
+function marcarGrafica(estado, regla) {
+  for (var q in posiciones) {
+    document.getElementById("nodo-" + q).setAttribute("class", q == estado ? "nodo activo" : "nodo");
+  }
+  for (var i = 0; i < aristas.length; i++) {
+    var n = aristas[i].regla;
+    var activa = (n == regla);
+    var flecha = document.getElementById("arista-" + n);
+    flecha.setAttribute("class", activa ? "arista activa" : "arista");
+    flecha.setAttribute("marker-end", activa ? "url(#flecha2)" : "url(#flecha)");
+    document.getElementById("etq-" + n).setAttribute("class", activa ? "etq activa" : "etq");
+  }
+}
+
+// validar con Enter
+document.getElementById("txtCadena").addEventListener("keydown", function (e) {
+  if (e.key == "Enter") validar();
+});
+
+// cambiar entre modo claro y oscuro (se guarda para la proxima vez)
+function cambiarModo() {
+  document.body.classList.toggle("oscuro");
+  var oscuro = document.body.classList.contains("oscuro");
+  document.getElementById("btnModo").innerHTML = oscuro ? "Modo claro" : "Modo oscuro";
+  try { localStorage.setItem("modo", oscuro ? "oscuro" : "claro"); } catch (e) {}
+}
+
+try {
+  var guardado = localStorage.getItem("modo");
+  if (guardado == "oscuro" || (guardado == null && false)) cambiarModo();
+} catch (e) {}
+
+dibujarDiagrama();
+mostrarReglas("");
+marcarGrafica("", "");
+</script>
+
+</body>
+</html>
